@@ -171,7 +171,7 @@ const generateFaceSwap = async (brideImageBase64, groomImageBase64, referenceUrl
   }
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -185,8 +185,11 @@ const generateFaceSwap = async (brideImageBase64, groomImageBase64, referenceUrl
     const data = await response.json();
 
     if (data.error) {
-      console.error("Gemini API Error:", data.error);
-      throw new Error(data.error.message);
+      console.error("Gemini API Error Detail:", data.error);
+      return {
+        error: `[${data.error.code}] ${data.error.message}`,
+        details: data.error.status
+      };
     }
 
     const imageBase64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
@@ -197,10 +200,17 @@ const generateFaceSwap = async (brideImageBase64, groomImageBase64, referenceUrl
         status: fidelityStatus
       };
     }
-    return null;
+
+    // Check for safety reason blocking
+    const finishReason = data.candidates?.[0]?.finishReason;
+    if (finishReason === 'SAFETY') {
+      return { error: "Generation blocked by safety filters. Please try images with clearer faces or different lighting." };
+    }
+
+    return { error: "API returned success but no image data was found." };
   } catch (error) {
-    console.error("Face swap failed:", error);
-    return null;
+    console.error("Face swap network failed:", error);
+    return { error: `Network/API connection failed: ${error.message}` };
   }
 };
 
@@ -414,7 +424,8 @@ export default function App() {
       }, 100);
     } else {
       setIsProcessing(false);
-      setErrorMessage("The masterpiece could not be generated. Please try a different photo or check your connection.");
+      const detailMsg = result?.error ? ` Details: ${result.error}` : "";
+      setErrorMessage(`The masterpiece could not be generated.${detailMsg}`);
     }
   };
 

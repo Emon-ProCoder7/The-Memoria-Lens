@@ -120,7 +120,7 @@ const BRAND = {
 };
 
 // --- API Helpers ---
-const apiKey = ""; // Set at runtime
+const apiKey = "AIzaSyCMC5CMhkBdimisxmyKM4FOarIUqHFQaM4"; // Set at runtime
 
 const cleanBase64 = (dataUrl) => {
   if (!dataUrl) return null;
